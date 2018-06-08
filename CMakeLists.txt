@@ -10,3 +10,7 @@ add_executable(dns_demo
 add_executable(resolve_ipv4
     resolve_ipv4.c
 )
+
+add_executable(structs_ipv4
+    structs_ipv4.c
+)
