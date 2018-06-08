@@ -1,0 +1,165 @@
+FQDN			Fully-qualified domain name
+
+
+NAPTR record
+	Name Authority Pointer
+
+	Links
+		https://tools.ietf.org/html/rfc2915
+
+	An NAPTR explicitly spells out a domain name for which an SRV record exists.
+	NAPTRs exist for a given string (typically a domain name). They list SRV records, which contain service (SIP, email, etc) and protocol (TCP, UDP) information.
+	For example:
+		NAPTR	=> _sip._udp.example.com, _sip._tcp.example.com
+
+
+	Specifies a "regex-based rewrite rule".
+	When given a string, this rule produces a new domain label or URI, i.e. rewrite a string into a domain name.
+	This resulting label or URI may be:
+		another NAPTR
+		the final output
+
+	This system allows the Domain Name System to be used for strings or URIs that are not in domain name syntax.
+
+domain. TTL class type order preference flags service regexp
+	domain 			Domain name of this resource record. 'key' in the rule database. (has trailing dot)
+	TTL				Time To Live
+	class			always IN (internet)
+	type			always NAPTR (35)
+	order			u16 specifying order in which NAPTR records MUST be processed. Lowest first.
+	preference		u16 that ranks records with the same order. Lowest first.
+	flags			char string. S, A, U, P
+	service			service(s) available down this rewrite path.
+	regexp			the rewrite rule - a regex
+	replacement		the next name to query. Must be a FQDN. (has trailing dot)
+
+	flags
+		S		Next lookup should be for SRV records
+		A		Next lookup should be for address record
+		U		Output of Regexp field is an absoluteURI
+		P		remainder of algorithm is protocol-specific
+
+		S, A, and U are 'terminal' flags.
+		If these flags are not present, there is another NAPTR RR at the domain.
+
+	service
+		[ [protocol] *("+") rs]		# e.g. SIP+D2U or SIP+D2T
+		protocol		SIP, mailto, etc
+		rs				resolution service
+							D2U -> UDP
+							D2T -> TCP
+							D2S -> SCTP
+							https://www.ietf.org/rfc/rfc3263.txt
+
+	regex
+		No need to bother right now
+
+
+
+Example:
+	The query is made from 127.0.0.1 to 127.0.0.53 (localhost to nameserver [local?])
+
+$ dig redas.iop1.broadworks.net NAPTR
+redas.iop1.broadworks.net. 299	IN	NAPTR	1 50 "s" "SIP+D2U" "" _sip._udp.redas.iop1.broadworks.net.
+	domain 						redas.iop1.broadworks.net
+	TTL							299
+	class						IN
+	type						NAPTR
+	order						1
+	preference					50
+	flags						s
+	service						SIP+D2U
+		protocol				SIP
+		resolution service		DSU -> UDP
+	regex						""
+	replacement					_sip._udp.redas.iop1.broadworks.net
+redas.iop1.broadworks.net. 299	IN	NAPTR	2 50 "s" "SIP+D2T" "" _sip._tcp.redas.iop1.broadworks.net.
+	domain 						redas.iop1.broadworks.net
+	TTL							299
+	class						IN
+	type						NAPTR
+	order						2
+	preference					50
+	flags						s
+	service						SIP+D2T
+		protocol				SIP
+		resolution service		DSU -> TCP
+	regex						""
+	replacement					_sip._udp.redas.iop1.broadworks.net
+
+
+
+RR				Resource Record
+
+SRV record
+	SeRVice record
+	Specification of data in the Domain Name System lookup
+
+	Links
+		https://en.wikipedia.org/wiki/SRV_record
+		https://tools.ietf.org/html/rfc2782
+
+_service._proto.name. TTL class type priority weight port target.
+	service		e.g. SIP, LDAP, etc
+	proto		TCP or UDP
+	name		domain name for this record (has trailing dot)
+	TTL			Time To Live
+	class		always IN (internet)
+	type		always SRV
+	priority	lowest is most preferred
+	weight		for records of same priority; higher is preferred
+	port		port on target host of this service (SIP is 5060, SIP over TLS is 5061, etc)
+	target		domain name of target host (has trailing dot)
+					must be one or more address records
+					must not be an alias
+
+We are typically interested in the target - we can do an DNS lookup on the target and it should return an address (A or AAAA) record with an IP address.
+
+$ dig _sip._udp.redas.iop1.broadworks.net SRV
+$ host -t SRV _sip._udp.redas.iop1.broadworks.net
+$ nslookup -querytype=srv _sip._udp.redas.iop1.broadworks.net
+$ nslookup
+> set querytype=srv
+> _sip._udp.redas.iop1.broadworks.net
+_sip._udp.redas.iop1.broadworks.net. 4 IN SRV	2 50 5060 as2.iop1.broadworks.net.
+	service		_sip
+	proto		udp
+	name		redas.iop1.broadworks.net
+	TTL			4
+	class		IN
+	type		SRV
+	priority	2
+	weight		50
+	port		5060
+	target		as2.iop1.broadworks.net
+
+
+Address record
+	Maps hostname to IP address
+
+	A			32-bit IPv4 address
+	AAAA		128-bit IPv4 address
+
+
+
+A record
+	Address record
+
+	Links
+		https://tools.ietf.org/html/rfc1035
+
+name (?) TTL class type address
+	name 		(has trailing dot)
+	TTL			Time To Line
+	class		always IN (internet)
+	type		always A (address)
+	address		IP address
+
+Example
+$ dig as2.iop1.broadworks.net A
+as2.iop1.broadworks.net. 4	IN	A	199.19.193.11
+	name		as2.iop1.broadworks.net
+	TTL			4
+	class		IN
+	type		A
+	address		199.19.193.11
