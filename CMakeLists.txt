@@ -6,3 +6,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 add_executable(dns_demo
     dns_demo.c
 )
+
+add_executable(resolve_ipv4
+    resolve_ipv4.c
+)
