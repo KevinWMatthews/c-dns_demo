@@ -39,6 +39,11 @@ int main(int argc, char *argv[])
      *             const struct addrinfo *hints,   // Criteria
      *             struct addrinfo **res);         // Result
      *
+     * node         network address, numerical or hostname
+     * service      port or protocol.
+     *              Always sets the port in the returned address struct - certain protocols use a specific port.
+     *              If NULL, the port is in the returned address struct is unitialized.
+     *              For list of protocols, see /etc/protocols
      * Returns 0 on success, < 0 on failure.
      */
     // Deprecated: call gethostbyname() and manually add info to a struct sockaddr_in.
@@ -46,7 +51,6 @@ int main(int argc, char *argv[])
     if (status < 0)
     {
         fprintf( stderr, "Error resolving hostname: %s\n", gai_strerror(status) );
-        freeaddrinfo(server_info);
         exit(1);
     }
 
@@ -57,11 +61,20 @@ int main(int argc, char *argv[])
     struct addrinfo *ptr = server_info;
     while (ptr != NULL)
     {
+        char ip_string[INET6_ADDRSTRLEN] = {0};
         void *addr;
 
         if (ptr->ai_family == AF_INET)
         {
             // IPv4
+            /*
+             * struct sockaddr_in {
+             *     short int          sin_family;  // Address family, AF_INET
+             *     unsigned short int sin_port;    // Port number
+             *     struct in_addr     sin_addr;    // Internet address
+             *     unsigned char      sin_zero[8]; // Same size as struct sockaddr
+             * };
+             */
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)ptr->ai_addr;
             addr = &(ipv4->sin_addr);
         }
@@ -72,8 +85,12 @@ int main(int argc, char *argv[])
             addr = &(ipv6->sin6_addr);
         }
 
-        char ip_string[INET6_ADDRSTRLEN] = {0};
-        // Network to presentation
+        /*
+         * const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
+         *
+         * Network to presentation.
+         * af       address family,
+         */
         inet_ntop(ptr->ai_family, addr, ip_string, sizeof(ip_string));
         printf("\t%s\n", ip_string);
 
@@ -81,6 +98,8 @@ int main(int argc, char *argv[])
     }
 
     printf("Tearing down\n");
+
+
     freeaddrinfo(server_info);
 
     printf("Done\n");
