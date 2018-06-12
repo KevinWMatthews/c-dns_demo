@@ -14,3 +14,7 @@ add_executable(resolve_ipv4
 add_executable(structs_ipv4
     structs_ipv4.c
 )
+
+add_executable(resolver
+    resolver.c
+)
