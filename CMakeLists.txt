@@ -18,3 +18,4 @@ add_executable(structs_ipv4
 add_executable(resolver
     resolver.c
 )
+target_link_libraries(resolver PRIVATE resolv)
