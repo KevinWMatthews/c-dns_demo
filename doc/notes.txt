@@ -1,0 +1,163 @@
+
+FQDN			Fully-qualified domain name
+
+RR
+	Resource Record
+	Defined by RFC 1035
+	See https://www.ietf.org/rfc/rfc1035.txt, section 3.2. RR definitions
+		NAME
+		TYPE
+		CLASS
+
+	3.2.2	TYPE values
+		A		host address
+		NS		authoritative name server
+		CNAME	canonical name for an alias
+		NULL
+		SOA
+		PTR
+		HINFO
+		MINFO
+		TXT
+
+	3.2.4	CLASS values
+		IN		Internet
+		CS		CSNET (obsolete)
+		CH		Chaos
+		HS		Hesiod
+
+
+Domain
+	example.com
+
+Subdomain
+	this.example.com
+	that.example.com
+
+	Ok, technically com is a domain and example.com is a subdomain.
+
+
+
+Domain vs Zone
+	A DNS server is authoritative (responsible) for a zone.
+	This could be an entire domain but typically (?) is only part of a domain (one or more subdomains?).
+	Zone: a domain minus any subdomains that are delegated to other DNS servers.
+	This is described with a single SOA (start of authority) record, which must contain an NS record.
+
+
+
+NS Record
+	Name Server
+
+	Links
+		https://support.dnsimple.com/articles/ns-record/
+		http://help.dnsmadeeasy.com/managed-dns/dns-record-types/ns-record/
+		RFC 1035?
+
+	"An NS record lists authoritative name servers for a zone".
+	A single domain can be delegated to several name server:
+		google.com	=> ns4.google.com
+		google.com	=> ns3.google.com
+		google.com	=> ns2.google.com
+		google.com	=> ns1.google.com
+
+
+
+
+RR				Resource Record
+
+SRV record
+	SeRVice record
+	Specification of data in the Domain Name System lookup
+
+	Links
+		https://en.wikipedia.org/wiki/SRV_record
+		https://tools.ietf.org/html/rfc2782
+
+_service._proto.name. TTL class type priority weight port target.
+	service		e.g. SIP, LDAP, etc
+	proto		TCP or UDP
+	name		domain name for this record (has trailing dot)
+	TTL			Time To Live
+	class		always IN (internet)
+	type		always SRV
+	priority	lowest is most preferred
+	weight		for records of same priority; higher is preferred
+	port		port on target host of this service (SIP is 5060, SIP over TLS is 5061, etc)
+	target		domain name of target host (has trailing dot)
+					must be one or more address records
+					must not be an alias
+
+We are typically interested in the target - we can do an DNS lookup on the target and it should return an address (A or AAAA) record with an IP address.
+
+$ dig _sip._udp.redas.iop1.broadworks.net SRV
+$ host -t SRV _sip._udp.redas.iop1.broadworks.net
+$ nslookup -querytype=srv _sip._udp.redas.iop1.broadworks.net
+$ nslookup
+> set querytype=srv
+> _sip._udp.redas.iop1.broadworks.net
+_sip._udp.redas.iop1.broadworks.net. 4 IN SRV	2 50 5060 as2.iop1.broadworks.net.
+	service		_sip
+	proto		udp
+	name		redas.iop1.broadworks.net
+	TTL			4
+	class		IN
+	type		SRV
+	priority	2
+	weight		50
+	port		5060
+	target		as2.iop1.broadworks.net
+
+
+Address record
+	Maps hostname to IP address
+
+	A			32-bit IPv4 address
+	AAAA		128-bit IPv4 address
+
+
+
+A record
+	Address record
+
+	Links
+		https://tools.ietf.org/html/rfc1035
+
+name (?) TTL class type address
+	name 		(has trailing dot)
+	TTL			Time To Line
+	class		always IN (internet)
+	type		always A (address)
+	address		IP address
+
+Example
+$ dig as2.iop1.broadworks.net A
+as2.iop1.broadworks.net. 4	IN	A	199.19.193.11
+	name		as2.iop1.broadworks.net
+	TTL			4
+	class		IN
+	type		A
+	address		199.19.193.11
+
+
+nslookup
+	querytype
+	[identical to type?]
+		A 				Address (default)
+		AAAA
+		ANY
+		CNAME			Canonical name
+		MB				MailBox
+		MX				Mail exchange
+		NAPTR
+		NS
+		PTR
+		SOA				Start of Authority
+		WKS				Well Known service
+		SRV			
+
+
+
+
+For a list of all available protocols, see /etc/protocols
+$ cat /etc/protocols
