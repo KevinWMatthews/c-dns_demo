@@ -101,11 +101,107 @@ static int parse_response(u_char *answer, int answer_len)
         n = dn_expand(msg, eom, cp, hostbuf, sizeof(hostbuf));
         if (n < 0)
         {
-            fprintf(stderr, "dn_expand() failed\n");
+            fprintf(stderr, "dn_expand() for query failed\n");
             return -1;
         }
         cp += (n + QFIXEDSZ);       // Apparently there is some "fixed data" in each response.
-        fprintf(stderr, "hostbuf: %s\n", hostbuf);
+        fprintf(stderr, "Query hostname: %s\n", hostbuf);
+    }
+
+    while (ancount-- > 0 && cp < eom)
+    {
+        fprintf(stderr, "\nParsing answer...\n");
+        int n;
+
+        n = dn_expand(msg, eom, cp, hostbuf, sizeof(hostbuf));
+        if (n < 0)
+        {
+            fprintf(stderr, "dn_expand() for answer failed\n");
+            return -1;
+        }
+        cp += n;                    // No fixed data this time, it seems
+
+        // Parse more details from packet
+        typedef struct
+        {
+            unsigned short order;
+			unsigned short pref;
+			char flag[256];
+			char service[1024];
+			char regexp[1024];
+			char replacement[1024];
+		} naptr_t;
+
+        naptr_t naptr = {0};
+        int type;
+        int aclass;
+        long ttl;
+        int dlen;       // The length of this record?
+
+        /*
+         * Inline versions of get/put short/long.  Pointer is advanced.
+         * See <arpa/nameser.h>
+         */
+        NS_GET16(type, cp);
+        NS_GET16(aclass, cp);
+        NS_GET32(ttl, cp);
+        NS_GET16(dlen, cp);
+
+        fprintf(stderr, "type: %d\n", type);
+        fprintf(stderr, "aclass: %d\n", aclass);
+        fprintf(stderr, "ttl: %lu\n", ttl);
+        fprintf(stderr, "dlen: %d\n", dlen);
+
+        //TODO find list of classes and types
+
+        if (type != T_NAPTR)
+        {
+            // We only want NAPTR records? Go to the next one
+            fprintf(stderr, "Not a NAPTER response; continue\n");
+            cp += dlen;
+            continue;
+        }
+
+        //TODO where do these fields come from?
+        // Parse order
+        memcpy((void *)&naptr.order, cp, 2);
+        naptr.order = ntohs(naptr.order);
+        cp += sizeof(unsigned short);
+
+        // Parse "pref"
+        memcpy((void *)&naptr.pref, cp, 2);
+        naptr.pref = ntohs(naptr.pref);
+        cp += sizeof(unsigned short);
+
+        // Parse flags
+        int flag_len;
+        flag_len = *cp;
+        cp++;
+        strncpy(naptr.flag, (char *)cp, flag_len);
+        cp += flag_len;
+
+        // Parse service
+        int service_len;
+        service_len = *cp;
+        cp++;
+        strncpy(naptr.service, (char *)cp, service_len);
+        cp += service_len;
+
+        // Parse regexp
+        int regexp_len;
+        regexp_len = *cp;
+        cp++;
+        strncpy(naptr.regexp, (char *)cp, regexp_len);
+        cp += regexp_len;
+
+        n = dn_expand(msg, eom, cp, naptr.replacement, sizeof(naptr.replacement)-1);
+        if (n < 0)
+        {
+            fprintf(stderr, "Error expanding replacement\n");
+            break;
+        }
+        cp += n;
+        fprintf(stderr, "Answer hostname: %s\n", naptr.replacement);
     }
 }
 
@@ -164,13 +260,13 @@ void deprecated_resolver(void)
 
     {
         u_char answer[PACKETSZ] = {0};
-        const char *domain = "google.com";
-        // const char *domain = "as2.iop1.broadworks.net";
+        // const char *domain = "google.com";
+        const char *domain = "redas.iop1.broadworks.net";
         int class = C_IN;       // Internet
         // See <arpa/nameser_compat.h> for the complete list - there are a lot.
-        int type = T_A;         // Address record
+        // int type = T_A;         // Address record
         // int type = T_NS;        // Name Server record
-        // int type = T_NAPTR;     // Name Authority Pointer record
+        int type = T_NAPTR;     // Name Authority Pointer record
         // int type = T_SRV;       // Service record
         int rsp_len;
 
