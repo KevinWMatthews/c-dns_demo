@@ -1,0 +1,21 @@
+how_to.txt
+
+	NAPTR
+
+Yields SRV records
+$ dig <server> NAPTR
+$ dig sip10.ringcentral.com NAPTR
+
+	A record
+
+Yields an IP address
+
+A records are default
+$ dig <server> A
+$ dig sip10.ringcentral.com A
+
+
+	SRV record
+
+$ dig <service>.<protocol>.<server> SRV
+$ dig _sip._udp.sip10.ringcentral.com SRV
